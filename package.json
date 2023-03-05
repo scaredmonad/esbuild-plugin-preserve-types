@@ -1,0 +1,50 @@
+{
+  "name": "esbuild-plugin-preserve-types",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "repository": "https://github.com/scaredmonad/esbuild-plugin-preserve-types.git",
+  "author": "Abdullahi M. <voidptr9@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "platform": "node",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    "./package.json": "./package.json",
+    ".": "./dist/index.js",
+    "./*": "./dist/*/index.js"
+  },
+  "scripts": {
+    "dev": "tsmodule dev",
+    "build": "tsmodule build",
+    "test": "ava",
+    "pretest": "tsmodule build",
+    "prepublishOnly": "yarn test",
+    "lint": "eslint src --fix"
+  },
+  "ava": {
+    "timeout": "10m",
+    "files": [
+      "test/**/*.test.ts"
+    ],
+    "extensions": {
+      "ts": "module"
+    },
+    "nodeArguments": [
+      "--no-warnings",
+      "--loader=@tsmodule/tsmodule/loader"
+    ]
+  },
+  "dependencies": {
+    "es-module-lexer": "^1.2.0",
+    "mkdirp": "^2.1.5",
+    "resolve": "^1.22.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.14.6",
+    "@types/resolve": "^1.20.2",
+    "esbuild": "^0.17.11"
+  }
+}

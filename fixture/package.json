@@ -1,0 +1,12 @@
+{
+  "name": "fixture",
+  "version": "1.0.0",
+  "main": "index.js",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "cd ../ && yarn build && cd ./fixture && node build.js --experimental-import-meta-resolve"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
