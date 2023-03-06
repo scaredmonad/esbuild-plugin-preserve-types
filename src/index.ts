@@ -105,10 +105,11 @@ function esbuildPluginPreserveTypes(): esbuild.Plugin {
 
         // Write main chunk to disk.
         if (args.path == path.resolve(entry)) {
-          const outDir = build.initialOptions?.outdir || "./";
+          const outDir = path.dirname(
+            build.initialOptions?.outfile || "./bundle.ts"
+          );
           mkdirp.sync(outDir);
-          const outPath = path.join(
-            outDir,
+          const outPath = path.resolve(
             build.initialOptions?.outfile || "bundle.ts"
           );
 
