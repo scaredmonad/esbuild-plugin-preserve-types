@@ -22,8 +22,6 @@ function resolveModule({
   externs,
 }) {
   for (const _import of _imports) {
-    // const isExtern = externs.some(ext => minimatch(_import.n, ext));
-    // if (isExtern) break;
     // Get the import definition line.
     const importDefinition = contents.slice(_import.ss, _import.se);
 
@@ -78,6 +76,7 @@ function resolveModule({
         stack,
         inputPath,
         reconstructed,
+        // Filter for non-extern paths.
         _imports: modules.filter(
           m => !externs.some(ext => minimatch(m.n || "", ext))
         ),
