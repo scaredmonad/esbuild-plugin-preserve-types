@@ -21,6 +21,7 @@
     "build": "tsmodule build",
     "test": "ava",
     "pretest": "tsmodule build",
+    "postinstall": "yarn build",
     "prepublishOnly": "yarn test",
     "lint": "eslint src --fix"
   },
