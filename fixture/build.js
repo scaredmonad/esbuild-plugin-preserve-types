@@ -3,8 +3,9 @@ import esbuildPluginPreserveTypes from "../dist/index.js";
 
 await esbuild.build({
   entryPoints: ["./src/index.ts"],
-  bundle: true,
   outfile: "./nested/out/bundle.ts",
+  external: ["@tscc/std/*", "@tscc/env/*"],
   write: false,
+  bundle: true,
   plugins: [esbuildPluginPreserveTypes()],
 });

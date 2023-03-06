@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import esbuild from "esbuild";
+import minimatch from "minimatch";
 import { parse } from "es-module-lexer";
 import resolve from "resolve";
 import mkdirp from "mkdirp";
@@ -18,8 +19,11 @@ function resolveModule({
   inputPath,
   contents,
   _imports,
+  externs,
 }) {
   for (const _import of _imports) {
+    // const isExtern = externs.some(ext => minimatch(_import.n, ext));
+    // if (isExtern) break;
     // Get the import definition line.
     const importDefinition = contents.slice(_import.ss, _import.se);
 
@@ -74,7 +78,10 @@ function resolveModule({
         stack,
         inputPath,
         reconstructed,
-        _imports: modules,
+        _imports: modules.filter(
+          m => !externs.some(ext => minimatch(m.n || "", ext))
+        ),
+        externs,
         contents: ordinaryModuleContents,
       });
   }
@@ -87,6 +94,7 @@ function esbuildPluginPreserveTypes(): esbuild.Plugin {
     name: "esbuild-plugin-preserve-types",
     setup(build) {
       build.onLoad({ filter: /\.tsx?$/ }, async args => {
+        const externs = build.initialOptions?.external || [];
         const contents = await fs.promises.readFile(args.path, "utf8");
         const [_imports] = parse(contents);
 
@@ -96,7 +104,10 @@ function esbuildPluginPreserveTypes(): esbuild.Plugin {
           ],
           stack: [],
           contents,
-          _imports,
+          externs,
+          _imports: _imports.filter(
+            m => !externs.some(ext => minimatch(m.n || "", ext))
+          ),
           inputPath: args.path,
         }) as ReconstructedModule[];
 

@@ -1,3 +1,4 @@
+import fs from "@tscc/env/fs";
 // ./lib.ts
 // import "./index";
 // ./sub/file.ts

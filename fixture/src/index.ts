@@ -1,3 +1,4 @@
+import fs from "@tscc/env/fs";
 import { add } from "./lib";
 
 console.log(add(10, 20));
