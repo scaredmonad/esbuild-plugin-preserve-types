@@ -2,7 +2,7 @@ import fs from "fs";
 import path from "path";
 import esbuild from "esbuild";
 import minimatch from "minimatch";
-import { parse } from "es-module-lexer";
+import { ImportSpecifier, parse } from "es-module-lexer";
 import resolve from "resolve";
 import mkdirp from "mkdirp";
 
@@ -15,6 +15,7 @@ type ReconstructedModule = {
 // of Node's module resolution algorithm.
 function resolveModule({
   reconstructed = [] as ReconstructedModule[],
+  maybeResolvedImports,
   stack,
   inputPath,
   contents,
@@ -44,40 +45,61 @@ function resolveModule({
     stack.push(ordinaryModulePath);
 
     // Get the file contents of each import.
-    const ordinaryModuleContents = fs
-      .readFileSync(resolvedModulePath)
-      .toString();
+    // We will mutate it on stripping sub-directory imports.
+    let ordinaryModuleContents = fs.readFileSync(resolvedModulePath).toString();
 
     // Children module imports and exports.
     const [modules] = parse(ordinaryModuleContents);
+    const maybeResolvedImports = modules
+      .map((m: ImportSpecifier) => {
+        const bareSpecifierOrModule =
+          m.n?.startsWith(".") && !path.extname(m.n) ? m.n + ".ts" : m.n;
+        const maybeResolvedPath = path.resolve(
+          path.dirname(resolvedModulePath),
+          bareSpecifierOrModule || ""
+        );
+        return stack.includes(maybeResolvedPath) ? m : undefined;
+      })
+      .filter(Boolean);
+
+    for (const subdirImport of maybeResolvedImports) {
+      // In this scenario, `ordinaryModuleContents` is the next module.
+      const subdirImportDefinition = ordinaryModuleContents.slice(
+        subdirImport?.ss,
+        subdirImport?.se
+      );
+      ordinaryModuleContents = ordinaryModuleContents.replace(subdirImportDefinition, "");
+    }
+
     const templatedModuleContents =
       `// ${bareSpecifierOrModule}\n` + ordinaryModuleContents.trim();
 
     // Update the last module in the reconstructed table.
-    let reconstructedImport = reconstructed[
+    let patchedModule = reconstructed[
       reconstructed.length - 1
     ].moduleContents.replace(importDefinition, templatedModuleContents);
 
     // Since es-module-lexer does not support matching `ss` and `se` for default
     // exports, we can unsafely use regex for one-liner default exports. Normally,
     // we can expect that users should not need default exports when using this plugin.
-    reconstructedImport = reconstructedImport.replace(
+    patchedModule = patchedModule.replace(
       /^\s*export\s+default\s+.+\n?(?:\s*)/gm,
       ""
     );
 
     reconstructed.push({
       resolvedModulePath,
-      moduleContents: reconstructedImport,
+      moduleContents: patchedModule,
     });
 
     if (modules.length)
       resolveModule({
         stack,
-        inputPath,
+        maybeResolvedImports,
+        inputPath: resolvedModulePath /** Allows `../sub-dir` imports. */,
         reconstructed,
-        // Filter for non-extern paths.
         _imports: modules.filter(
+          /** Filters for non-extern paths. */
           m => !externs.some(ext => minimatch(m.n || "", ext))
         ),
         externs,
@@ -101,6 +123,7 @@ function esbuildPluginPreserveTypes(): esbuild.Plugin {
           reconstructed: [
             { resolvedModulePath: args.path, moduleContents: contents },
           ],
+          maybeResolvedImports: [],
           stack: [],
           contents,
           externs,
